@@ -6,13 +6,7 @@ import { PatientLiveMonitor } from "@/components/dashboard/PatientLiveMonitor";
 import { ArrowLeft, StopCircle, FileText, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getPatient, patients } from "@/lib/data";
-
-export async function generateStaticParams() {
-    return patients.map((patient) => ({
-        id: patient.id,
-    }));
-}
+import { getPatient } from "@/lib/data";
 
 export default function SessionPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);

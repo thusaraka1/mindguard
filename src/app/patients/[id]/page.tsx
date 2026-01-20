@@ -5,13 +5,7 @@ import { Shell } from "@/components/layout/Shell";
 import { ArrowLeft, Edit, Calendar, CloudLightning } from "lucide-react";
 import Link from "next/link";
 import { SmartMedicalCard } from "@/components/reports/SmartMedicalCard";
-import { getPatient, patients } from '@/lib/data';
-
-export async function generateStaticParams() {
-    return patients.map((patient) => ({
-        id: patient.id,
-    }));
-}
+import { getPatient } from '@/lib/data';
 
 export default function PatientProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);

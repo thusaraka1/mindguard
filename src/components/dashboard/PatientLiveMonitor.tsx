@@ -76,9 +76,18 @@ export function PatientLiveMonitor() {
 
                 // Audio Level Loop
                 const checkAudioLevel = () => {
-                    if (analyserRef.current && dataArrayRef.current) {
-                        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-                        const average = dataArrayRef.current.reduce((a, b) => a + b) / dataArrayRef.current.length;
+                    const analyser = analyserRef.current;
+                    const dataArray = dataArrayRef.current;
+
+                    if (analyser && dataArray) {
+                        analyser.getByteFrequencyData(dataArray as any);
+
+                        let sum = 0;
+                        for (let i = 0; i < dataArray.length; i++) {
+                            sum += dataArray[i];
+                        }
+                        const average = sum / dataArray.length;
+
                         // Scale visually for the graph (0-100 approx)
                         setVoiceLevel(average * 1.5);
                     }
