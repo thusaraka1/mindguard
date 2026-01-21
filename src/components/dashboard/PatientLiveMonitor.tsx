@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import { motion } from "framer-motion";
-import { Mic, Activity, Zap, Camera, Thermometer, Smile, VideoOff, MicOff } from "lucide-react";
+import { Mic, Activity, Zap, Camera, Thermometer, Smile, VideoOff, MicOff, AudioWaveform } from "lucide-react";
+import { io } from "socket.io-client";
 
 // Mock data generator for sensors other than voice
 const generateData = (prev: number, min: number, max: number, volatility: number) => {
@@ -16,6 +17,7 @@ const generateData = (prev: number, min: number, max: number, volatility: number
 
 export function PatientLiveMonitor() {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null); // Hidden canvas for capture
     const audioContextRef = useRef<AudioContext | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const dataArrayRef = useRef<Uint8Array | null>(null);
@@ -27,7 +29,28 @@ export function PatientLiveMonitor() {
     const [heartRate, setHeartRate] = useState(75);
     const [temp, setTemp] = useState(36.5);
     const [gsr, setGsr] = useState(50);
-    const [voiceLevel, setVoiceLevel] = useState(0);
+    const [voiceLevel, setVoiceLevel] = useState(40);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [voiceData, setVoiceData] = useState<{ time: number, voice: number }[]>(
+        Array(50).fill(0).map((_, i) => ({ time: i, voice: 40 }))
+    );
+
+    // AI Analysis State
+    const [aiState, setAiState] = useState({ emotion: "Analyzing...", score: 0 });
+    const [faceRegion, setFaceRegion] = useState<{ x: number, y: number, w: number, h: number } | null>(null);
+    const [socketConnected, setSocketConnected] = useState(false);
+
+    // Voice Feature Extraction State
+    const [voiceFeatures, setVoiceFeatures] = useState({
+        avgDb: 40,
+        variance: 0,
+        silenceRatio: 100,
+        zeroCrossingRate: 0,
+        speechNoiseDb: 40  // Composite score for dataset
+    });
+    const dBHistoryRef = useRef<number[]>([]);
+    const silenceCountRef = useRef(0);
+    const totalCountRef = useRef(0);
 
     // Initialize data array
     useEffect(() => {
@@ -41,10 +64,28 @@ export function PatientLiveMonitor() {
         setData(initialData);
     }, []);
 
-    // Camera & Mic Setup
+    // Camera & Mic Setup AND Socket IO
     useEffect(() => {
         let animationFrameId: number;
+        let captureInterval: NodeJS.Timeout;
 
+        // 1. Setup Socket
+        const socket = io("http://localhost:5000");
+
+        socket.on("connect", () => {
+            console.log("Connected to AI Brain");
+            setSocketConnected(true);
+        });
+
+        socket.on("frame_processed", (data: any) => {
+            // setProcessedFrame(`data:image/jpeg;base64,${data.image}`); // No longer receiving image
+            setFaceRegion(data.region);
+            setAiState({ emotion: data.emotion, score: data.score });
+        });
+
+        socket.on("disconnect", () => setSocketConnected(false));
+
+        // 2. Start Media
         const startMedia = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -74,26 +115,114 @@ export function PatientLiveMonitor() {
                 const dataArray = new Uint8Array(bufferLength);
                 dataArrayRef.current = dataArray;
 
-                // Audio Level Loop
+                // Audio Level Loop - Calculate Real dB
                 const checkAudioLevel = () => {
                     const analyser = analyserRef.current;
                     const dataArray = dataArrayRef.current;
 
                     if (analyser && dataArray) {
-                        analyser.getByteFrequencyData(dataArray as any);
+                        // Get time domain data for RMS calculation
+                        analyser.getByteTimeDomainData(dataArray);
 
-                        let sum = 0;
+                        // Calculate RMS (Root Mean Square)
+                        let sumSquares = 0;
                         for (let i = 0; i < dataArray.length; i++) {
-                            sum += dataArray[i];
+                            const normalized = (dataArray[i] - 128) / 128; // Normalize to -1 to 1
+                            sumSquares += normalized * normalized;
                         }
-                        const average = sum / dataArray.length;
+                        const rms = Math.sqrt(sumSquares / dataArray.length);
 
-                        // Scale visually for the graph (0-100 approx)
-                        setVoiceLevel(average * 1.5);
+                        // Convert to dB (with floor and ceiling)
+                        // Reference: 0 dB = full scale, typical speech ~60-70 dB SPL
+                        // We map RMS to approximate SPL-like values
+                        let dB = 0;
+                        if (rms > 0.001) {
+                            // 20 * log10(rms) gives dB relative to full scale
+                            // Map to realistic SPL range: 30-90 dB
+                            dB = 20 * Math.log10(rms) + 90; // Offset to get positive values
+                            dB = Math.max(30, Math.min(90, dB)); // Clamp to 30-90 range
+                        } else {
+                            dB = 30; // Silence floor
+                        }
+
+                        setVoiceLevel(dB);
+                        setIsSpeaking(dB > 50); // Speaking threshold
+
+                        // Update voice data for graph (fast updates)
+                        setVoiceData(prev => {
+                            const newData = [...prev.slice(1), { time: Date.now(), voice: dB }];
+                            return newData;
+                        });
+
+                        // === VOICE FEATURE EXTRACTION ===
+                        // Track dB history (keep last 100 samples ~1.5 seconds)
+                        dBHistoryRef.current.push(dB);
+                        if (dBHistoryRef.current.length > 100) {
+                            dBHistoryRef.current.shift();
+                        }
+
+                        // Track silence ratio
+                        totalCountRef.current++;
+                        if (dB < 45) {
+                            silenceCountRef.current++;
+                        }
+
+                        // Calculate Zero Crossing Rate (voice tremor indicator)
+                        let zeroCrossings = 0;
+                        for (let i = 1; i < dataArray.length; i++) {
+                            if ((dataArray[i] - 128) * (dataArray[i - 1] - 128) < 0) {
+                                zeroCrossings++;
+                            }
+                        }
+                        const zcr = zeroCrossings / dataArray.length;
+
+                        // Update features every 50 samples
+                        if (dBHistoryRef.current.length >= 50 && totalCountRef.current % 50 === 0) {
+                            const history = dBHistoryRef.current;
+                            const avg = history.reduce((a, b) => a + b, 0) / history.length;
+                            const variance = history.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / history.length;
+                            const stdDev = Math.sqrt(variance);
+                            const silenceRatio = (silenceCountRef.current / totalCountRef.current) * 100;
+
+                            // Composite Speech_Noise_dB score
+                            // Higher = more "noise" indicators (stress signs)
+                            const speechNoiseDb = Math.min(100, Math.max(0,
+                                avg + (stdDev * 2) + (zcr * 50) - (silenceRatio * 0.3)
+                            ));
+
+                            setVoiceFeatures({
+                                avgDb: Math.round(avg),
+                                variance: Math.round(stdDev * 10) / 10,
+                                silenceRatio: Math.round(silenceRatio),
+                                zeroCrossingRate: Math.round(zcr * 1000) / 10,
+                                speechNoiseDb: Math.round(speechNoiseDb)
+                            });
+                        }
                     }
                     animationFrameId = requestAnimationFrame(checkAudioLevel);
                 };
                 checkAudioLevel();
+
+                // 3. Start Frame Capture for AI
+                captureInterval = setInterval(() => {
+                    if (videoRef.current && canvasRef.current && socket.connected) {
+                        const video = videoRef.current;
+                        const canvas = canvasRef.current;
+                        const ctx = canvas.getContext('2d');
+
+                        if (video.readyState === video.HAVE_ENOUGH_DATA && ctx) {
+                            // Optimize: Resize to smaller width (e.g. 480px) to reduce bandwidth/latency
+                            const scaleFactor = 480 / video.videoWidth;
+                            canvas.width = 480;
+                            canvas.height = video.videoHeight * scaleFactor;
+
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            // Reduce quality slightly for speed
+                            const base64 = canvas.toDataURL('image/jpeg', 0.5);
+                            socket.emit('process_frame', base64);
+                        }
+                    }
+                }, 200); // 5 FPS (Every 200ms) - Much smoother than 1s
 
             } catch (err) {
                 console.error("Error accessing media devices:", err);
@@ -104,22 +233,60 @@ export function PatientLiveMonitor() {
         startMedia();
 
         return () => {
+            console.log("🛑 Stopping camera and audio...");
+
+            // Stop animation frame
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+            // Stop capture interval
+            if (captureInterval) clearInterval(captureInterval);
+
+            // Disconnect socket
+            socket.disconnect();
+
+            // Stop all media tracks (camera + mic)
             if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current.getTracks().forEach(track => {
+                    console.log(`Stopping track: ${track.kind}`);
+                    track.stop();
+                });
+                streamRef.current = null;
             }
+
+            // Also stop video element source
+            if (videoRef.current) {
+                videoRef.current.srcObject = null;
+            }
+
+            // Close audio context
             if (audioContextRef.current) {
                 audioContextRef.current.close();
+                audioContextRef.current = null;
             }
+
+            console.log("✅ All media stopped");
         };
     }, []);
 
     // Sensors Simulation Loop (Voice is now real)
     useEffect(() => {
         const interval = setInterval(() => {
-            setHeartRate(prev => generateData(prev, 60, 110, 5));
+            // Simulate Bio-Data based on Stress Score if available
+            // If stress is high (score > 8), increase HR and GSR
+            let targetHR = 75;
+            let targetGSR = 50;
+
+            if (aiState.score > 8) {
+                targetHR = 100;
+                targetGSR = 70;
+            } else if (aiState.score > 4) {
+                targetHR = 85;
+                targetGSR = 60;
+            }
+
+            setHeartRate(prev => generateData(prev, targetHR - 5, targetHR + 5, 2));
             setTemp(prev => generateData(prev, 36.2, 37.2, 0.1));
-            setGsr(prev => generateData(prev, 40, 80, 2));
+            setGsr(prev => generateData(prev, targetGSR - 5, targetGSR + 5, 1));
 
             // Note: setVoiceLevel is handled by the audio context loop above
 
@@ -136,27 +303,41 @@ export function PatientLiveMonitor() {
         }, 100);
 
         return () => clearInterval(interval);
-    }, [heartRate, temp, gsr, voiceLevel]);
+    }, [heartRate, temp, gsr, voiceLevel, aiState]);
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[600px]">
             {/* Video Feed Section */}
             <div className="lg:col-span-3 relative bg-black rounded-2xl overflow-hidden border border-slate-200 shadow-sm group min-h-[400px]">
-                {/* Video Element */}
+                {/* Hidden Capture */}
+                <canvas ref={canvasRef} className="hidden" />
+
+                {/* 1. Underlying Real Video (Now Fully Visible) */}
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    muted // Mute local preview to avoid feedback loop
+                    muted
                     className="absolute inset-0 w-full h-full object-cover"
                 />
 
-                <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/60 z-10 flex flex-col justify-between p-6 pointer-events-none">
+                {/* 2. AI Overlay Box (Computed) - REMOVED for performance/UI preference */}
+                {/* 
+                  faceRegion && videoRef.current && (
+                    <div ... />
+                  )
+                */}
+
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/60 z-20 flex flex-col justify-between p-6 pointer-events-none">
                     <div className="flex justify-between items-start">
                         <div className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded animate-pulse">
                             LIVE
                         </div>
                         <div className="flex gap-2">
+                            <span className={`backdrop-blur-md text-white/80 text-xs px-2 py-1 rounded border border-white/10 flex items-center gap-1 ${socketConnected ? 'bg-emerald-500/20 text-emerald-100' : 'bg-yellow-500/20 text-yellow-100'}`}>
+                                <Activity className="h-3 w-3" />
+                                {socketConnected ? 'AI Connected' : 'Connecting AI...'}
+                            </span>
                             <span className={`backdrop-blur-md text-white/80 text-xs px-2 py-1 rounded border border-white/10 flex items-center gap-1 ${hasPermission ? 'bg-emerald-500/20 text-emerald-100' : 'bg-destructive/40'}`}>
                                 {hasPermission ? <Camera className="h-3 w-3" /> : <VideoOff className="h-3 w-3" />}
                                 {hasPermission ? 'Cam 01 Active' : 'No Signal'}
@@ -176,12 +357,12 @@ export function PatientLiveMonitor() {
 
                         {/* AI Mood Overlay */}
                         <div className="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50">
-                                <Smile className="h-6 w-6 text-emerald-400" />
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center border ${aiState.score > 8 ? 'bg-red-500/20 border-red-500' : 'bg-emerald-500/20 border-emerald-500'}`}>
+                                <Smile className={`h-6 w-6 ${aiState.score > 8 ? 'text-red-400' : 'text-emerald-400'}`} />
                             </div>
                             <div>
                                 <p className="text-[10px] text-slate-300 uppercase tracking-wider font-bold">Detected Mood</p>
-                                <p className="text-white font-bold text-sm">Neutral / Calm</p>
+                                <p className="text-white font-bold text-sm capitalize">{aiState.emotion} (Score: {aiState.score})</p>
                             </div>
                         </div>
                     </div>
@@ -204,7 +385,7 @@ export function PatientLiveMonitor() {
             </div>
 
             {/* Sensor Graphs Sidebar */}
-            <div className="lg:col-span-1 flex flex-col gap-4 h-full overflow-y-auto pr-1">
+            <div className="lg:col-span-1 flex flex-col gap-4 pb-6">
                 <SensorGraph
                     label="ECG / Heart Rate"
                     value={`${Math.round(heartRate)} BPM`}
@@ -235,30 +416,66 @@ export function PatientLiveMonitor() {
                 <SensorGraph
                     label="Voice Intensity"
                     value={`${Math.round(voiceLevel)} dB`}
-                    data={data}
+                    data={voiceData}
                     dataKey="voice"
-                    color="#0ea5e9"
+                    color={isSpeaking ? "#10b981" : "#0ea5e9"}
                     icon={Mic}
-                    subtext="Conversation Mode"
+                    subtext={voiceLevel < 45 ? "Silent" : voiceLevel < 60 ? "Quiet" : voiceLevel < 75 ? "Normal Speech" : "Loud"}
+                    highlight={isSpeaking}
                 />
+
+                {/* Voice Analysis Panel */}
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-4 shadow-sm">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 uppercase tracking-wide mb-3">
+                        <AudioWaveform className="h-3.5 w-3.5" /> Speech Analysis
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-slate-600">Speech Noise</span>
+                            <span className="text-sm font-bold text-indigo-700">{voiceFeatures.speechNoiseDb} dB</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-slate-600">Variance</span>
+                            <span className={`text-sm font-bold ${voiceFeatures.variance > 5 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                {voiceFeatures.variance} {voiceFeatures.variance > 5 ? '⚠️' : '✓'}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-slate-600">Silence</span>
+                            <span className="text-sm font-bold text-slate-700">{voiceFeatures.silenceRatio}%</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-slate-600">Tremor (ZCR)</span>
+                            <span className={`text-sm font-bold ${voiceFeatures.zeroCrossingRate > 30 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                {voiceFeatures.zeroCrossingRate}% {voiceFeatures.zeroCrossingRate > 30 ? '⚠️' : '✓'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
 }
 
-function SensorGraph({ label, value, data, dataKey, color, icon: Icon, subtext }: any) {
+function SensorGraph({ label, value, data, dataKey, color, icon: Icon, subtext, highlight }: any) {
     return (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col relative overflow-hidden shadow-sm hover:shadow-md transition-shadow flex-1 min-h-[100px]">
+        <div className={`bg-white rounded-xl border p-4 flex flex-col relative overflow-hidden shadow-sm hover:shadow-md transition-all flex-1 min-h-[100px] ${highlight ? 'border-emerald-400 ring-2 ring-emerald-100' : 'border-slate-200'}`}>
             <div className="flex justify-between items-start z-10 mb-2">
                 <div className="flex flex-col">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
-                        <Icon className="h-3.5 w-3.5" /> {label}
+                        <Icon className={`h-3.5 w-3.5 ${highlight ? 'text-emerald-500' : ''}`} /> {label}
+                        {highlight && (
+                            <span className="ml-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded-full font-bold animate-pulse">
+                                SPEAKING
+                            </span>
+                        )}
                     </div>
                     <span className="text-2xl font-bold text-slate-800 tracking-tight">{value}</span>
+                    <span className="text-xs text-slate-400 mt-0.5">{subtext}</span>
                 </div>
             </div>
 
-            <div className="flex-1 absolute bottom-0 left-0 right-0 h-16 opacity-30">
+            <div className={`flex-1 absolute bottom-0 left-0 right-0 h-16 ${highlight ? 'opacity-60' : 'opacity-30'}`}>
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data}>
                         <Line
@@ -275,7 +492,7 @@ function SensorGraph({ label, value, data, dataKey, color, icon: Icon, subtext }
             </div>
 
             {/* Decorative accent line */}
-            <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: color, opacity: 0.2 }}></div>
+            <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: color, opacity: highlight ? 0.6 : 0.2 }}></div>
         </div>
     );
 }

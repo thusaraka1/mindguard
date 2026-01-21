@@ -52,12 +52,12 @@ export function Sidebar() {
             <div className="p-4 border-t border-border">
                 <div className="bg-slate-50 rounded-xl p-4 border border-border">
                     <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wider">System Status</p>
-                    <div className="flex items-center gap-2">
-                        <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    <div className="flex items-center gap-2" suppressHydrationWarning={true}>
+                        <span className="relative flex h-2.5 w-2.5" suppressHydrationWarning={true}>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" suppressHydrationWarning={true}></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" suppressHydrationWarning={true}></span>
                         </span>
-                        <span className="text-xs font-bold text-slate-700">Online & Secure</span>
+                        <span className="text-xs font-bold text-slate-700" suppressHydrationWarning={true}>Online & Secure</span>
                     </div>
                 </div>
             </div>

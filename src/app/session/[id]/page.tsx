@@ -44,7 +44,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
 
     return (
         <Shell>
-            <div className="flex flex-col h-[calc(100vh-140px)] gap-4 relative">
+            <div className="flex flex-col min-h-[calc(100vh-140px)] gap-4 relative overflow-auto">
                 {/* Session Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
