@@ -9,3 +9,5 @@ tensorflow
 pyaudio
 pyserial
 eventlet
+
+tf-keras
