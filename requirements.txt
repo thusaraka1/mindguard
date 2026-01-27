@@ -1,0 +1,11 @@
+flask
+flask-socketio
+opencv-python
+deepface
+numpy
+pandas
+joblib
+tensorflow
+pyaudio
+pyserial
+eventlet
