@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  patients  Patient[]
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  age       Int
+  gender    String
+  condition String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions  Session[]
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  monitorType String   // e.g., "LIVE_VIDEO", "VOICE_ONLY"
+  analyses    Analysis[]
+}
+
+model Analysis {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id])
+  timestamp   DateTime @default(now())
+  stressLevel Float    // 0.0 to 1.0 (or higher if dB based)
+  emotion     String?  // e.g., "Neutral", "Anxious"
+  metrics     Json     // Store raw JSON data (heart rate, voice dB, etc.)
+}

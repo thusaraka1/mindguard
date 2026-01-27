@@ -1,0 +1,27 @@
+{
+    "columns": [
+        "Age",
+        "Heart_Rate_bpm",
+        "Body_Temperature_C",
+        "Speech_Noise_dB",
+        "Movement_Level",
+        "ECG_Variability",
+        "Facial_Stress_Score",
+        "Gender_Female",
+        "Gender_Male",
+        "Province_Central",
+        "Province_Eastern",
+        "Province_North Western",
+        "Province_Northern",
+        "Province_Sabaragamuwa",
+        "Province_Southern",
+        "Province_Uva",
+        "Province_Western"
+    ],
+    "classes": [
+        "Non-Normal",
+        "Normal"
+    ],
+    "accuracy": 0.9980000257492065,
+    "timestamp": "20260121_040538"
+}
