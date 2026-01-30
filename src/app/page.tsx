@@ -13,21 +13,32 @@ export default function LoginPage() {
   const [email, setEmail] = useState("doctor@mindguard.lk");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    // Simulate network delay
-    setTimeout(() => {
-      if (password === "admin123" || password === "") { // Allow empty for demo ease or specific pass
-        // Success - Redirect to DASHBOARD
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Redirect to DASHBOARD
         router.push("/dashboard");
       } else {
-        setError("Invalid credentials. Please try again.");
-        setIsLoading(false);
+        setError(data.error || "Login failed. Please check your credentials.");
       }
-    }, 800);
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
