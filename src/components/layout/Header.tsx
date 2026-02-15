@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Search, LogOut, User, Settings, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,17 +8,32 @@ import Link from "next/link";
 export function Header() {
     const router = useRouter();
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [userName, setUserName] = useState("Doctor");
+    const [userInitials, setUserInitials] = useState("DR");
+
+    useEffect(() => {
+        const stored = localStorage.getItem("mindguard_user");
+        if (stored) {
+            try {
+                const user = JSON.parse(stored);
+                const name = user.name || "Doctor";
+                setUserName(name);
+                const parts = name.replace(/^Dr\.?\s*/i, "").trim().split(" ");
+                setUserInitials(parts.map((p: string) => p[0]).join("").slice(0, 2).toUpperCase() || "DR");
+            } catch { /* ignore */ }
+        }
+    }, []);
 
     const handleLogout = () => {
-        // In a real app, clear auth tokens here
+        localStorage.removeItem("mindguard_user");
         router.push("/");
     };
 
     return (
         <header className="h-20 border-b border-border bg-white sticky top-0 z-40 px-8 flex items-center justify-between">
             <div>
-                <h2 className="text-lg font-semibold text-slate-800">Welcome back, Dr. Nethmini</h2>
-                <p className="text-sm text-slate-500" suppressHydrationWarning>Today is Monday, Jan 20 • 3 Active Appointments</p>
+                <h2 className="text-lg font-semibold text-slate-800">Welcome back, {userName}</h2>
+                <p className="text-sm text-slate-500" suppressHydrationWarning>Today is {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</p>
             </div>
 
             <div className="flex items-center gap-4">
@@ -53,7 +68,7 @@ export function Header() {
                     >
                         <div className="h-10 w-10 rounded-full border-2 border-slate-100 p-[2px] bg-white">
                             <div className="h-full w-full rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
-                                DN
+                                {userInitials}
                             </div>
                         </div>
                         <ChevronDown className="h-4 w-4 text-slate-400" />
@@ -67,8 +82,8 @@ export function Header() {
                             ></div>
                             <div className="absolute right-0 top-14 w-56 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-2 animate-in fade-in slide-in-from-top-2">
                                 <div className="px-4 py-3 border-b border-slate-50 mb-1">
-                                    <p className="text-sm font-bold text-slate-800">Dr. Nethmini</p>
-                                    <p className="text-xs text-slate-500">Chief Psychiatrist</p>
+                                    <p className="text-sm font-bold text-slate-800">{userName}</p>
+                                    <p className="text-xs text-slate-500">Medical Officer</p>
                                 </div>
                                 <div className="space-y-1 p-1">
                                     <Link href="/settings" className="w-full text-left px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-lg flex items-center gap-2 transition-colors">

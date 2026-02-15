@@ -1,11 +1,64 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { Shell } from "@/components/layout/Shell";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { AppointmentList } from "@/components/dashboard/AppointmentList";
 import { Users, Activity, AlertTriangle, Clock, Search, FileText } from "lucide-react";
 
+interface Appointment {
+    id: string;
+    patientName: string;
+    patientEmail: string;
+    patientPhone: string | null;
+    date: string;
+    timeSlot: string;
+    status: string;
+    paid: boolean;
+    notes: string | null;
+    createdAt: string;
+}
+
 export default function DashboardPage() {
+    const [doctorId, setDoctorId] = useState<string | null>(null);
+    const [doctorName, setDoctorName] = useState("Doctor");
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const stored = localStorage.getItem("mindguard_user");
+        if (stored) {
+            try {
+                const user = JSON.parse(stored);
+                if (user.doctorId) setDoctorId(user.doctorId);
+                if (user.name) setDoctorName(user.name);
+            } catch { /* ignore */ }
+        }
+        setLoading(false);
+    }, []);
+
+    const fetchAppointments = useCallback(() => {
+        if (!doctorId) return;
+        fetch(`/api/doctor/patients?doctorId=${doctorId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) setAppointments(data.appointments);
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, [doctorId]);
+
+    useEffect(() => {
+        if (doctorId) fetchAppointments();
+    }, [doctorId, fetchAppointments]);
+
+    const todayStr = new Date().toDateString();
+    const todayAppts = appointments.filter(a => new Date(a.date).toDateString() === todayStr);
+    const pendingToday = todayAppts.filter(a => a.status !== "CANCELLED").length;
+    const completedToday = todayAppts.filter(a => a.status === "COMPLETED").length;
+    const totalPatients = new Set(appointments.map(a => a.patientEmail)).size;
+    const remaining = pendingToday - completedToday;
+
     return (
         <Shell>
             <div className="flex flex-col gap-6 h-full">
@@ -30,25 +83,25 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard
                         label="Total Patients"
-                        value="124"
+                        value={String(totalPatients)}
                         icon={Users}
-                        trend="+12%"
+                        trend={`${appointments.length} appointments`}
                         trendUp={true}
                     />
                     <StatCard
                         label="Today's Sessions"
-                        value="4"
+                        value={String(pendingToday)}
                         icon={Clock}
-                        trend="2 Remaining"
+                        trend={remaining > 0 ? `${remaining} Remaining` : "All done"}
                         trendUp={true}
                         color="secondary"
                     />
                     <StatCard
                         label="Anxiety Alerts"
-                        value="12"
+                        value="0"
                         icon={AlertTriangle}
                         color="destructive"
-                        trend="-2 today"
+                        trend="—"
                         trendUp={true}
                     />
                     <StatCard
@@ -62,7 +115,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 flex-1">
                     {/* Main Content: Appointment List */}
                     <div className="lg:col-span-2">
-                        <AppointmentList />
+                        <AppointmentList appointments={appointments} loading={loading} />
                     </div>
 
                     {/* Side Panel: Recent Activity / Quick Links */}
@@ -72,17 +125,19 @@ export default function DashboardPage() {
                                 Recent Reports
                             </h3>
                             <div className="space-y-3">
-                                {[1, 2, 3].map((i) => (
-                                    <div key={i} className="flex gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100 group">
+                                {appointments.length > 0 ? appointments.slice(0, 3).map((a, i) => (
+                                    <div key={a.id} className="flex gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100 group">
                                         <div className="h-10 w-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 group-hover:bg-white group-hover:shadow-sm transition-all">
                                             <FileText className="h-5 w-5" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold text-slate-700 group-hover:text-primary transition-colors">Session Report #{8820 + i}</p>
-                                            <p className="text-xs text-slate-400">Generated 2h ago • Dr. Silva</p>
+                                            <p className="text-sm font-bold text-slate-700 group-hover:text-primary transition-colors">Session Report #{i + 1}</p>
+                                            <p className="text-xs text-slate-400">{a.patientName} &bull; Dr. {doctorName}</p>
                                         </div>
                                     </div>
-                                ))}
+                                )) : (
+                                    <p className="text-sm text-slate-400">No reports yet.</p>
+                                )}
                             </div>
                             <button className="w-full mt-4 py-2.5 text-xs font-bold text-center text-slate-600 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors uppercase tracking-wide">View All Reports</button>
                         </div>

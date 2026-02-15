@@ -28,8 +28,17 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Redirect to DASHBOARD
-        router.push("/dashboard");
+        // Store user data for role-based access
+        localStorage.setItem("mindguard_user", JSON.stringify(data.user));
+
+        // Redirect based on role
+        if (data.user.role === "ADMIN") {
+          router.push("/admin");
+        } else if (data.user.role === "DOCTOR") {
+          router.push("/doctor-portal");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setError(data.error || "Login failed. Please check your credentials.");
       }

@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -15,6 +15,8 @@ model User {
   email     String   @unique
   name      String?
   password  String
+  role      String   @default("DOCTOR") // ADMIN or DOCTOR
+  doctorId  String?  // Links to Doctor profile (for role=DOCTOR)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   patients  Patient[]
@@ -52,4 +54,86 @@ model Analysis {
   stressLevel Float    // 0.0 to 1.0 (or higher if dB based)
   emotion     String?  // e.g., "Neutral", "Anxious"
   metrics     String   // Store raw JSON data as string (SQLite limitation)
+}
+
+model Doctor {
+  id             String          @id @default(uuid())
+  name           String
+  specialty      String
+  bio            String?
+  imageUrl       String?
+  available      Boolean         @default(true)
+  rating         Float           @default(4.5)
+  experience     Int             @default(5)
+  consultFee     Float           @default(2500)
+  availableDays  String          @default("Mon,Tue,Wed,Thu,Fri")
+  availableTime  String          @default("09:00-17:00")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  appointments   Appointment[]
+  timeSlots      TimeSlot[]
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date      DateTime // specific date for this slot
+  time      String   // e.g., "09:00"
+  room      String   @default("Room 1") // assigned consultation room
+  isBooked  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([doctorId, date, time])
+  @@index([doctorId, date])
+}
+
+// AvailableDate model removed as availability is now defined by TimeSlot presence
+
+model Appointment {
+  id           String   @id @default(uuid())
+  doctorId     String
+  doctor       Doctor   @relation(fields: [doctorId], references: [id])
+  patientName  String
+  patientEmail String
+  patientPhone String?
+  date         DateTime
+  timeSlot     String
+  status       String   @default("PENDING") // PENDING, CONFIRMED, COMPLETED, CANCELLED
+  paid         Boolean  @default(false)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  sessionRecord SessionRecord?
+}
+
+model SessionRecord {
+  id              String   @id @default(uuid())
+  appointmentId   String   @unique
+  appointment     Appointment @relation(fields: [appointmentId], references: [id])
+  
+  // Session metadata
+  duration        Int      // session duration in seconds
+  recordedTemp    Float?   // pre-session body temperature
+  prescription    String?  // doctor's notes/prescription
+  
+  // ML prediction results
+  prediction      String?  // "Normal" or "Non-Normal"
+  probability     Float?   // model output probability
+  confidence      Float?   // confidence percentage
+  
+  // Session averages (sensor data)
+  avgHeartRate    Float?
+  avgBodyTemp     Float?
+  avgSpeechNoise  Float?
+  avgMovement     Float?
+  avgEcgVariability Float?
+  avgFacialStress Float?
+  
+  // Patient demographics used for prediction
+  age             Int?
+  gender          String?
+  province        String?
+  
+  createdAt       DateTime @default(now())
 }

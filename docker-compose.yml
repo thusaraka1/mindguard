@@ -9,18 +9,29 @@ services:
     container_name: mindguard_db
     restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: mindguard
+      POSTGRES_PASSWORD: mindguard123
       POSTGRES_DB: mindguard
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U user -d mindguard" ]
+      test: [ "CMD-SHELL", "pg_isready -U mindguard -d mindguard" ]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ===========================================
+  # DB GUI - Adminer
+  # ===========================================
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
 
   # ===========================================
   # Backend - Flask + ML Model Server

@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: "Advanced IoT-based behavioral analysis system.",
 };
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -17,8 +19,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(outfit.variable, "antialiased bg-background text-foreground min-h-screen font-sans")} suppressHydrationWarning>
-        {children}
+      <body
+        className={`${outfit.variable} antialiased bg-background text-foreground min-h-screen font-sans`}
+        suppressHydrationWarning
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

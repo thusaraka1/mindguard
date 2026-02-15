@@ -3,19 +3,35 @@
 import { Clock, MoreHorizontal, Play, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { patients } from "@/lib/data";
 
-// Extract appointments from the centralized patient list
-const appointments = patients.filter(p => p.upcomingAppointment).map(p => ({
-    id: p.id,
-    name: p.name,
-    time: p.upcomingAppointment,
-    status: p.status || "Pending",
-    type: p.type || "General Checkup"
-}));
+interface Appointment {
+    id: string;
+    patientName: string;
+    patientEmail: string;
+    patientPhone: string | null;
+    date: string;
+    timeSlot: string;
+    status: string;
+    paid: boolean;
+    notes: string | null;
+    createdAt: string;
+}
 
-export function AppointmentList() {
-    const nextPatient = appointments.find(a => a.status === "Pending");
+export function AppointmentList({ appointments, loading }: { appointments: Appointment[]; loading?: boolean }) {
+    const todayStr = new Date().toDateString();
+    const todayAppts = appointments
+        .filter(a => new Date(a.date).toDateString() === todayStr)
+        .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot));
+
+    const nextPatient = todayAppts.find(a => a.status !== "CANCELLED" && a.status !== "COMPLETED");
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-48">
+                <div className="h-8 w-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-6 h-full">
@@ -29,24 +45,22 @@ export function AppointmentList() {
                         <div>
                             <div className="flex items-center gap-2 mb-3">
                                 <span className="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Up Next</span>
-                                <span className="text-sm text-slate-500 font-medium flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {nextPatient.time}</span>
+                                <span className="text-sm text-slate-500 font-medium flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {nextPatient.timeSlot}</span>
                             </div>
 
-                            <h3 className="text-3xl font-bold text-slate-800 mb-1">{nextPatient.name}</h3>
-                            <p className="text-slate-500 font-medium">{nextPatient.type}</p>
+                            <h3 className="text-3xl font-bold text-slate-800 mb-1">{nextPatient.patientName}</h3>
+                            <p className="text-slate-500 font-medium">{nextPatient.notes || "General Session"}</p>
                         </div>
 
                         <div className="flex gap-3">
-                            <Link href={`/session/${nextPatient.id}`}>
+                            <Link href={`/session/${nextPatient.id}?name=${encodeURIComponent(nextPatient.patientName)}&email=${encodeURIComponent(nextPatient.patientEmail)}&phone=${encodeURIComponent(nextPatient.patientPhone || "")}&date=${encodeURIComponent(nextPatient.date)}&time=${encodeURIComponent(nextPatient.timeSlot)}`}>
                                 <button className="bg-primary hover:bg-sky-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-sky-500/20 active:scale-95">
                                     <Play className="h-4 w-4 fill-current" /> Start Session
                                 </button>
                             </Link>
-                            <Link href={`/patients/${nextPatient.id}`}>
-                                <button className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold transition-all">
-                                    View Profile
-                                </button>
-                            </Link>
+                            <button className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold transition-all">
+                                View Profile
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -56,37 +70,45 @@ export function AppointmentList() {
             <div className="bg-white border border-slate-200 rounded-2xl flex-1 flex flex-col shadow-sm">
                 <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
                     <h3 className="font-bold text-slate-800">Today&apos;s Schedule</h3>
-                    <button className="text-xs font-medium text-primary hover:underline flex items-center gap-1">View Calendar <ArrowRight className="h-3 w-3" /></button>
+                    <Link href="/doctor-portal" className="text-xs font-medium text-primary hover:underline flex items-center gap-1">View All <ArrowRight className="h-3 w-3" /></Link>
                 </div>
 
                 <div className="divide-y divide-slate-100 overflow-y-auto max-h-[400px]">
-                    {appointments.map((apt) => (
-                        <div key={apt.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group">
-                            <div className="flex items-center gap-4">
-                                <div className={cn(
-                                    "h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm",
-                                    apt.status === "Pending" ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500"
-                                )}>
-                                    {apt.name.split(" ").map(n => n[0]).join("")}
-                                </div>
-                                <div>
-                                    <p className="font-bold text-slate-800 text-sm">{apt.name}</p>
-                                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                                        <span>{apt.time}</span>
-                                        <span className="text-slate-300">•</span>
-                                        <span>{apt.type}</span>
+                    {todayAppts.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400 text-sm">No appointments today.</div>
+                    ) : todayAppts.map((apt) => {
+                        const statusLabel = apt.status === "COMPLETED" ? "Completed"
+                            : apt.status === "CANCELLED" ? "Cancelled"
+                            : apt.status === "IN_PROGRESS" ? "In Progress"
+                            : "Pending";
+                        return (
+                            <div key={apt.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                                <div className="flex items-center gap-4">
+                                    <div className={cn(
+                                        "h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm",
+                                        statusLabel === "Pending" ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500"
+                                    )}>
+                                        {apt.patientName.split(" ").map(n => n[0]).join("")}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-slate-800 text-sm">{apt.patientName}</p>
+                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                            <span>{apt.timeSlot}</span>
+                                            <span className="text-slate-300">&bull;</span>
+                                            <span>{apt.notes || "General Session"}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="flex items-center gap-3">
-                                <StatusBadge status={apt.status} />
-                                <button className="p-2 text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    <StatusBadge status={statusLabel} />
+                                    <button className="p-2 text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </div>
@@ -98,6 +120,7 @@ function StatusBadge({ status }: { status: string }) {
         "Completed": "bg-emerald-50 text-emerald-600 border-emerald-100",
         "In Progress": "bg-amber-50 text-amber-600 border-amber-100",
         "Pending": "bg-slate-50 text-slate-500 border-slate-100",
+        "Cancelled": "bg-red-50 text-red-500 border-red-100",
     }[status] || "bg-slate-50 text-slate-500";
 
     return (

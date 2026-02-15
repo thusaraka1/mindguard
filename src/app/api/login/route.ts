@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
     try {
@@ -29,11 +27,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Return success (In a real app, you'd set a session/cookie here)
-        // For this simple implementation, we just return success and let frontend handle redirect
+        // Return success with role and doctorId
         return NextResponse.json({
             success: true,
-            user: { id: user.id, name: user.name, email: user.email }
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                doctorId: user.doctorId,
+            }
         });
 
     } catch (error) {

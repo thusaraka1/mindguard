@@ -15,7 +15,16 @@ const generateData = (prev: number, min: number, max: number, volatility: number
     return next;
 };
 
-export function PatientLiveMonitor() {
+interface PatientLiveMonitorProps {
+    onDataUpdate?: (data: {
+        heartRate: number;
+        speechNoise: number;
+        movementLevel: number;
+        facialStress: number;
+    }) => void;
+}
+
+export function PatientLiveMonitor({ onDataUpdate }: PatientLiveMonitorProps = {}) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null); // Hidden canvas for capture
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -52,6 +61,20 @@ export function PatientLiveMonitor() {
     const silenceCountRef = useRef(0);
     const totalCountRef = useRef(0);
 
+    // Refs for graph data (avoids interval recreation on every state change)
+    const heartRateRef = useRef(heartRate);
+    const tempRef = useRef(temp);
+    const gsrRef = useRef(gsr);
+    const voiceLevelRef = useRef(voiceLevel);
+    const aiStateRef = useRef(aiState);
+
+    // Keep refs in sync with state
+    useEffect(() => { heartRateRef.current = heartRate; }, [heartRate]);
+    useEffect(() => { tempRef.current = temp; }, [temp]);
+    useEffect(() => { gsrRef.current = gsr; }, [gsr]);
+    useEffect(() => { voiceLevelRef.current = voiceLevel; }, [voiceLevel]);
+    useEffect(() => { aiStateRef.current = aiState; }, [aiState]);
+
     // Initialize data array
     useEffect(() => {
         const initialData = Array(50).fill(0).map((_, i) => ({
@@ -69,23 +92,74 @@ export function PatientLiveMonitor() {
         let animationFrameId: number;
         let captureInterval: NodeJS.Timeout;
 
-        // 1. Setup Socket
-        const socket = io("http://localhost:5000");
+        // 1. Setup Socket — force WebSocket (polling is unreliable for large base64 frames)
+        const socket = io("http://localhost:5000", {
+            transports: ['websocket'],
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+        });
 
         socket.on("connect", () => {
             console.log("Connected to AI Brain");
             setSocketConnected(true);
         });
 
+        // 2. Receive Frame Processing Results + Sensor Data (reliable direct channel)
+        let frameCount = 0;
         socket.on("frame_processed", (data: any) => {
-            // setProcessedFrame(`data:image/jpeg;base64,${data.image}`); // No longer receiving image
+            frameCount++;
+            if (frameCount % 20 === 1) {
+                console.log(`🖼️ frame_processed #${frameCount}:`, {
+                    bpm: data.bpm, temp: data.body_temp,
+                    move: data.movement_level,
+                    emotion: data.emotion, score: data.score
+                });
+            }
             setFaceRegion(data.region);
             setAiState({ emotion: data.emotion, score: data.score });
+
+            // Update sensor values from piggybacked data
+            if (data.bpm !== undefined) setHeartRate(data.bpm);
+            if (data.body_temp !== undefined) setTemp(data.body_temp);
+            if (data.movement_level !== undefined) {
+                setGsr(Math.round(data.movement_level * 10));
+            }
         });
 
-        socket.on("disconnect", () => setSocketConnected(false));
+        // 3. Also listen for MindGuard Global Updates (backup channel from background thread)
+        let updateCount = 0;
+        socket.on("mindguard_update", (serverState: any) => {
+            updateCount++;
+            if (updateCount % 10 === 1) {
+                console.log(`📡 mindguard_update #${updateCount}:`, {
+                    bpm: serverState.bpm, temp: serverState.body_temp,
+                    move: serverState.movement_level,
+                    face: serverState.facial_emotion, score: serverState.facial_score
+                });
+            }
+            if (serverState.bpm !== undefined) setHeartRate(serverState.bpm);
+            if (serverState.body_temp !== undefined) setTemp(serverState.body_temp);
+            if (serverState.movement_level !== undefined) {
+                setGsr(Math.round(serverState.movement_level * 10));
+            }
+            if (serverState.facial_score !== undefined || serverState.facial_emotion) {
+                setAiState({
+                    emotion: serverState.facial_emotion || "Analyzing...",
+                    score: serverState.facial_score ?? 0
+                });
+            }
+        });
 
-        // 2. Start Media
+        socket.on("disconnect", (reason: string) => {
+            console.log(`❌ Socket disconnected: ${reason}`);
+            setSocketConnected(false);
+        });
+
+        socket.on("connect_error", (err: any) => {
+            console.log(`❌ Socket connect error: ${err.message}`);
+        });
+
+        // 4. Start Media
         const startMedia = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -122,7 +196,7 @@ export function PatientLiveMonitor() {
 
                     if (analyser && dataArray) {
                         // Get time domain data for RMS calculation
-                        analyser.getByteTimeDomainData(dataArray);
+                        analyser.getByteTimeDomainData(dataArray as Uint8Array<ArrayBuffer>);
 
                         // Calculate RMS (Root Mean Square)
                         let sumSquares = 0;
@@ -203,7 +277,8 @@ export function PatientLiveMonitor() {
                 };
                 checkAudioLevel();
 
-                // 3. Start Frame Capture for AI
+                // 5. Start Frame Capture for AI
+                let frameSendCount = 0;
                 captureInterval = setInterval(() => {
                     if (videoRef.current && canvasRef.current && socket.connected) {
                         const video = videoRef.current;
@@ -220,7 +295,15 @@ export function PatientLiveMonitor() {
                             // Reduce quality slightly for speed
                             const base64 = canvas.toDataURL('image/jpeg', 0.5);
                             socket.emit('process_frame', base64);
+                            frameSendCount++;
+                            if (frameSendCount % 50 === 1) {
+                                console.log(`📤 Frame sent #${frameSendCount} (${(base64.length / 1024).toFixed(0)}KB) socket=${socket.connected}`);
+                            }
+                        } else if (frameSendCount === 0) {
+                            console.log(`⏳ Video not ready: readyState=${video.readyState} (need ${video.HAVE_ENOUGH_DATA})`);
                         }
+                    } else if (!socket.connected) {
+                        console.log('⚠️ Frame skipped: socket not connected');
                     }
                 }, 200); // 5 FPS (Every 200ms) - Much smoother than 1s
 
@@ -268,42 +351,74 @@ export function PatientLiveMonitor() {
         };
     }, []);
 
-    // Sensors Simulation Loop (Voice is now real)
+    // Graph Data Update Loop (uses refs for stable interval - no recreation)
     useEffect(() => {
         const interval = setInterval(() => {
-            // Simulate Bio-Data based on Stress Score if available
-            // If stress is high (score > 8), increase HR and GSR
-            let targetHR = 75;
-            let targetGSR = 50;
-
-            if (aiState.score > 8) {
-                targetHR = 100;
-                targetGSR = 70;
-            } else if (aiState.score > 4) {
-                targetHR = 85;
-                targetGSR = 60;
-            }
-
-            setHeartRate(prev => generateData(prev, targetHR - 5, targetHR + 5, 2));
-            setTemp(prev => generateData(prev, 36.2, 37.2, 0.1));
-            setGsr(prev => generateData(prev, targetGSR - 5, targetGSR + 5, 1));
-
-            // Note: setVoiceLevel is handled by the audio context loop above
-
             setData(prevData => {
                 const newData = [...prevData.slice(1), {
                     time: Date.now(),
-                    ecg: heartRate,
-                    temp: temp,
-                    gsr: gsr,
-                    voice: voiceLevel // Use the real-time audio level
+                    ecg: heartRateRef.current,
+                    temp: tempRef.current,
+                    gsr: gsrRef.current,
+                    voice: voiceLevelRef.current
                 }];
                 return newData;
             });
-        }, 100);
+        }, 200); // 5 Hz graph updates (smooth enough, no jank)
 
         return () => clearInterval(interval);
-    }, [heartRate, temp, gsr, voiceLevel, aiState]);
+    }, []); // Empty deps = stable interval, reads from refs
+
+    // Emit session data to parent for recording averages
+    useEffect(() => {
+        if (!onDataUpdate) return;
+        const dataInterval = setInterval(() => {
+            onDataUpdate({
+                heartRate: heartRateRef.current,
+                speechNoise: voiceLevelRef.current,
+                movementLevel: gsrRef.current / 10, // Convert back from µS display scale
+                facialStress: aiStateRef.current.score ?? 0,
+            });
+        }, 1000); // Collect data every 1 second
+        return () => clearInterval(dataInterval);
+    }, [onDataUpdate]);
+
+    // REST Polling Fallback - guaranteed to work even if Socket.IO events don't arrive
+    useEffect(() => {
+        let pollCount = 0;
+        const pollInterval = setInterval(async () => {
+            try {
+                const res = await fetch('http://localhost:5000/api/state');
+                if (res.ok) {
+                    const s = await res.json();
+                    pollCount++;
+
+                    // Update sensor values
+                    if (s.bpm !== undefined) setHeartRate(s.bpm);
+                    if (s.body_temp !== undefined) setTemp(s.body_temp);
+                    if (s.movement_level !== undefined) {
+                        setGsr(Math.round(s.movement_level * 10));
+                    }
+
+                    // Update facial analysis
+                    if (s.facial_emotion || s.facial_score !== undefined) {
+                        setAiState({
+                            emotion: s.facial_emotion || "Analyzing...",
+                            score: s.facial_score ?? 0
+                        });
+                    }
+
+                    if (pollCount % 20 === 1) {
+                        console.log(`🔄 REST poll #${pollCount}: BPM=${s.bpm} Temp=${s.body_temp} Face=${s.facial_emotion}/${s.facial_score}`);
+                    }
+                }
+            } catch (err) {
+                // Server not reachable, skip
+            }
+        }, 500); // Poll every 500ms (2Hz)
+
+        return () => clearInterval(pollInterval);
+    }, []);
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[600px]">
@@ -362,7 +477,7 @@ export function PatientLiveMonitor() {
                             </div>
                             <div>
                                 <p className="text-[10px] text-slate-300 uppercase tracking-wider font-bold">Detected Mood</p>
-                                <p className="text-white font-bold text-sm capitalize">{aiState.emotion} (Score: {aiState.score})</p>
+                                <p className="text-white font-bold text-sm capitalize">{aiState.emotion} (Score: {typeof aiState.score === 'number' ? aiState.score.toFixed(1) : aiState.score})</p>
                             </div>
                         </div>
                     </div>
@@ -476,7 +591,7 @@ function SensorGraph({ label, value, data, dataKey, color, icon: Icon, subtext, 
             </div>
 
             <div className={`flex-1 absolute bottom-0 left-0 right-0 h-16 ${highlight ? 'opacity-60' : 'opacity-30'}`}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                     <LineChart data={data}>
                         <Line
                             type="monotone"
