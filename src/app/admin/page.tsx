@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -45,6 +46,7 @@ function Toast({ message, type, onClose }: { message: string; type: "success" | 
 /*           ADMIN PANEL PAGE             */
 /* ═══════════════════════════════════════ */
 export default function AdminPage() {
+    const router = useRouter();
     const [doctors, setDoctors] = useState<DoctorType[]>([]);
     const [appointments, setAppointments] = useState<AppointmentType[]>([]);
     const [activeTab, setActiveTab] = useState<"doctors" | "appointments">("doctors");
@@ -56,12 +58,8 @@ export default function AdminPage() {
     // Admin auth state
     const [isAdmin, setIsAdmin] = useState(false);
     const [authChecked, setAuthChecked] = useState(false);
-    const [loginEmail, setLoginEmail] = useState("");
-    const [loginPassword, setLoginPassword] = useState("");
-    const [loginError, setLoginError] = useState("");
-    const [loginLoading, setLoginLoading] = useState(false);
 
-    // Check if already logged in as admin
+    // Check if already logged in as admin — redirect to unified login if not
     useEffect(() => {
         const stored = localStorage.getItem("mindguard_user");
         if (stored) {
@@ -69,40 +67,14 @@ export default function AdminPage() {
                 const user = JSON.parse(stored);
                 if (user.role === "ADMIN") {
                     setIsAdmin(true);
+                    setAuthChecked(true);
+                    return;
                 }
             } catch { /* ignore */ }
         }
-        setAuthChecked(true);
-    }, []);
-
-    // Admin login handler
-    const handleAdminLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoginLoading(true);
-        setLoginError("");
-        try {
-            const res = await fetch("/api/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: loginEmail, password: loginPassword }),
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                if (data.user.role === "ADMIN") {
-                    localStorage.setItem("mindguard_user", JSON.stringify(data.user));
-                    setIsAdmin(true);
-                } else {
-                    setLoginError("Access denied. This login is for administrators only.");
-                }
-            } else {
-                setLoginError(data.error || "Invalid credentials. Please try again.");
-            }
-        } catch {
-            setLoginError("Network error. Please try again.");
-        } finally {
-            setLoginLoading(false);
-        }
-    };
+        // Not an admin — redirect to unified login
+        router.push("/login");
+    }, [router]);
 
     // Create Doctor Modal
     const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -187,84 +159,10 @@ export default function AdminPage() {
         Promise.all([fetchDoctors(), fetchAppointments()]).finally(() => setLoading(false));
     }, [isAdmin]);
 
-    // ─── Admin Login Screen ───
-    if (!authChecked) {
+    if (!authChecked || !isAdmin) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="h-8 w-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-            </div>
-        );
-    }
-
-    if (!isAdmin) {
-        return (
-            <div className="min-h-screen bg-background flex items-center justify-center p-4">
-                <div className="absolute inset-0">
-                    <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px]" />
-                    <div className="absolute bottom-1/4 right-1/3 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px]" />
-                </div>
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                    className="relative z-10 w-full max-w-md"
-                >
-                    <div className="bg-card border border-border rounded-2xl p-8 backdrop-blur-xl shadow-2xl">
-                        <div className="text-center mb-8">
-                            <div className="h-14 w-14 mx-auto rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/25 mb-4">
-                                <Shield className="h-7 w-7 text-white" />
-                            </div>
-                            <h1 className="text-2xl font-bold text-foreground mb-2">Admin Access</h1>
-                            <p className="text-sm text-muted-foreground">Sign in with your administrator credentials</p>
-                        </div>
-
-                        <form onSubmit={handleAdminLogin} className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
-                                        placeholder="admin@mindguard.lk"
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-input border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 transition-all"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-2">Password</label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <input type="password" required value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-input border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/50 transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            {loginError && (
-                                <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3">
-                                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                                    {loginError}
-                                </div>
-                            )}
-
-                            <button type="submit" disabled={loginLoading}
-                                className="w-full py-3.5 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-600 to-indigo-500 hover:from-purple-500 hover:to-indigo-400 shadow-lg shadow-purple-600/20 transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 text-white">
-                                {loginLoading ? (
-                                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        <Shield className="h-4 w-4" />
-                                        Sign In as Admin
-                                    </>
-                                )}
-                            </button>
-                        </form>
-
-                        <div className="mt-6 text-center">
-                            <Link href="/landing" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                ← Back to Home
-                            </Link>
-                        </div>
-                    </div>
-                </motion.div>
             </div>
         );
     }
@@ -506,7 +404,7 @@ export default function AdminPage() {
                         <button onClick={() => { fetchDoctors(); fetchAppointments(); showToast("Refreshed"); }} className="p-2 rounded-lg hover:bg-accent hover:text-foreground text-muted-foreground transition-colors">
                             <RefreshCw className="h-4 w-4" />
                         </button>
-                        <Link href="/" onClick={() => localStorage.removeItem("mindguard_user")} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3">
+                        <Link href="/login" onClick={() => localStorage.removeItem("mindguard_user")} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3">
                             Logout
                         </Link>
                     </div>

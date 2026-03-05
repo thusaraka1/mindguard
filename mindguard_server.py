@@ -890,9 +890,9 @@ if __name__ == '__main__':
     threading.Thread(target=predictor_thread, daemon=True).start()
     
     if _selected_serial_port:
-        print(f"\nMindGuard AI Server starting on http://localhost:5000  (port: {_selected_serial_port})")
+        print(f"\nMindGuard AI Server starting on http://localhost:5005  (port: {_selected_serial_port})")
     else:
-        print(f"\nMindGuard AI Server starting on http://localhost:5000  (no port selected -- use frontend)")
+        print(f"\nMindGuard AI Server starting on http://localhost:5005  (no port selected -- use frontend)")
     print("   async_mode = threading (DeepFace won't block event loop)\n")
-    socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5005, allow_unsafe_werkzeug=True)
 

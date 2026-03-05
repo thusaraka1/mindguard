@@ -97,7 +97,7 @@ export default function DoctorPortalPage() {
                         <AlertCircle className="h-12 w-12 mx-auto text-amber-400" />
                         <h2 className="text-2xl font-bold text-slate-800">Not Logged In</h2>
                         <p className="text-slate-500">Please log in with your doctor account to view patients.</p>
-                        <Link href="/" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary hover:bg-sky-600 text-white font-semibold text-sm mt-4">
+                        <Link href="/login" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary hover:bg-sky-600 text-white font-semibold text-sm mt-4">
                             Go to Login
                         </Link>
                     </div>
@@ -108,7 +108,7 @@ export default function DoctorPortalPage() {
 
     return (
         <Shell>
-            <div className="flex flex-col gap-6 h-full">
+            <div className="flex flex-col gap-6 pb-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
                     <div>
@@ -122,7 +122,7 @@ export default function DoctorPortalPage() {
                         <button onClick={() => fetchAppointments(true)} className="px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-medium text-slate-600 flex items-center gap-2 transition-colors">
                             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
                         </button>
-                        <Link href="/" onClick={() => localStorage.removeItem("mindguard_user")}
+                        <Link href="/login" onClick={() => localStorage.removeItem("mindguard_user")}
                             className="px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-sm font-medium text-slate-600 transition-colors">
                             Logout
                         </Link>
@@ -199,13 +199,13 @@ export default function DoctorPortalPage() {
                 </div>
 
                 {/* Patient List */}
-                <div className="bg-white border border-slate-200 rounded-2xl flex-1 flex flex-col shadow-sm overflow-hidden">
+                <div className="bg-white border border-slate-200 rounded-2xl flex flex-col shadow-sm overflow-hidden">
                     <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
                         <h3 className="font-bold text-slate-800">Registered Patients</h3>
                         <span className="text-xs font-medium text-slate-400">{filteredAppointments.length} patient{filteredAppointments.length !== 1 ? 's' : ''}</span>
                     </div>
 
-                    <div className="divide-y divide-slate-100 overflow-y-auto max-h-[500px]">
+                    <div className="divide-y divide-slate-100">
                         {filteredAppointments.length === 0 ? (
                             <div className="text-center py-16">
                                 <Users className="h-10 w-10 mx-auto mb-3 text-slate-300" />

@@ -406,19 +406,12 @@ export default function LandingPage() {
                     </div>
 
                     <div suppressHydrationWarning className="hidden md:flex items-center gap-3">
-                        {/* Auth Buttons */}
-                        <button onClick={() => { setPatientLoginOpen(true); resetPatientLogin(); }} className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium px-4 py-2">
-                            Patient Login
-                        </button>
                         <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium px-4 py-2">
-                            Doctor Login
+                            Login
                         </Link>
-                        <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium px-4 py-2">
-                            Admin Login
-                        </Link>
-                        <Link href="/doctors" className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-500/40 transition-all active:scale-[0.98]">
+                        <a href="#doctors" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-500/40 transition-all active:scale-[0.98]">
                             <Stethoscope className="h-4 w-4" /> Book Appointment
-                        </Link>
+                        </a>
                         <ThemeToggle />
                     </div>
 
@@ -446,9 +439,7 @@ export default function LandingPage() {
                                         {item}
                                     </a>
                                 ))}
-                                <button onClick={() => { setPatientLoginOpen(true); resetPatientLogin(); setMobileMenuOpen(false); }} className="block text-sm text-muted-foreground hover:text-foreground py-2 text-left w-full">Patient Login</button>
-                                <Link href="/" className="block text-sm text-muted-foreground hover:text-foreground py-2">Doctor Login</Link>
-                                <Link href="/admin" className="block text-sm text-muted-foreground hover:text-foreground py-2">Admin Login</Link>
+                                <Link href="/" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-muted-foreground hover:text-foreground py-2">Login</Link>
                                 <a href="#doctors" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-semibold px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-center mt-2">
                                     Channel a Doctor
                                 </a>
@@ -485,10 +476,10 @@ export default function LandingPage() {
                                 <Stethoscope className="h-5 w-5" />
                                 Find a Doctor
                             </a>
-                            <button onClick={() => { setPatientLoginOpen(true); resetPatientLogin(); }} className="px-8 py-4 rounded-2xl bg-accent border border-border hover:bg-accent/80 transition-all font-semibold active:scale-95 flex items-center gap-2">
+                            <Link href="/" className="px-8 py-4 rounded-2xl bg-accent border border-border hover:bg-accent/80 transition-all font-semibold active:scale-95 flex items-center gap-2">
                                 <Activity className="h-5 w-5" />
                                 Get Your Records
-                            </button>
+                            </Link>
                         </motion.div>
                         <motion.div variants={fadeUp} className="flex items-center gap-8 pt-4 justify-center lg:justify-start">
                             <div className="text-left">

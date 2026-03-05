@@ -18,7 +18,7 @@ export default function MonitoringPage() {
 
     useEffect(() => {
         // 1. Connect to Processing Server
-        const socket = io("http://localhost:5000");
+        const socket = io("http://localhost:5005");
 
         socket.on("connect", () => {
             console.log("Connected to AI Processing Server");

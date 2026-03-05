@@ -66,7 +66,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         if (phase !== "temp-record") return;
         const interval = setInterval(async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/state');
+                const res = await fetch('http://localhost:5005/api/state');
                 if (res.ok) {
                     const s = await res.json();
                     if (s.body_temp !== undefined) setLiveTemp(s.body_temp);
@@ -80,7 +80,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
     const fetchPorts = useCallback(async () => {
         setPortsLoading(true);
         try {
-            const res = await fetch('http://localhost:5000/api/ports');
+            const res = await fetch('http://localhost:5005/api/ports');
             if (res.ok) {
                 const data = await res.json();
                 setPorts(data.ports || []);
@@ -107,7 +107,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         setPortConnected(false);
         setLiveTemp(0);
         try {
-            const res = await fetch('http://localhost:5000/api/ports/select', {
+            const res = await fetch('http://localhost:5005/api/ports/select', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ port }),
@@ -198,7 +198,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
             // Call ML prediction API
             let prediction = { prediction: "Unknown", probability: 0, confidence: 0, input_used: sessionAverages };
             try {
-                const res = await fetch('http://localhost:5000/api/predict', {
+                const res = await fetch('http://localhost:5005/api/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(sessionAverages),
@@ -291,15 +291,14 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
                         </div>
 
                         {/* Connection status */}
-                        <div className={`flex items-center gap-2 mb-4 text-xs font-bold px-3 py-2 rounded-lg ${
-                            portConnected 
-                                ? 'bg-emerald-50 text-emerald-600' 
+                        <div className={`flex items-center gap-2 mb-4 text-xs font-bold px-3 py-2 rounded-lg ${portConnected
+                                ? 'bg-emerald-50 text-emerald-600'
                                 : portStatus.startsWith('Error') || portError
-                                ? 'bg-red-50 text-red-500'
-                                : portStatus === 'Backend offline'
-                                ? 'bg-red-50 text-red-500'
-                                : 'bg-amber-50 text-amber-600'
-                        }`}>
+                                    ? 'bg-red-50 text-red-500'
+                                    : portStatus === 'Backend offline'
+                                        ? 'bg-red-50 text-red-500'
+                                        : 'bg-amber-50 text-amber-600'
+                            }`}>
                             <Wifi className="h-3.5 w-3.5" />
                             {portError || portStatus}
                         </div>
@@ -311,11 +310,10 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
                                     key={p.device}
                                     onClick={() => handleSelectPort(p.device)}
                                     disabled={portConnecting}
-                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${
-                                        selectedPort === p.device
+                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${selectedPort === p.device
                                             ? 'border-blue-500 bg-blue-50 text-blue-700'
                                             : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-slate-700'
-                                    }`}
+                                        }`}
                                 >
                                     <div>
                                         <p className="font-bold text-sm">{p.device}</p>

@@ -8,22 +8,53 @@ export async function POST(request: Request) {
 
         if (!doctorId || !patientName || !patientEmail || !date) {
             return NextResponse.json(
-                { error: 'Doctor, patient name, email, and date are required' },
+                { error: 'Doctor, patient name, email, date, and time slot are required' },
                 { status: 400 }
             );
         }
 
         const bookingDate = new Date(date.split('T')[0] + 'T00:00:00.000Z');
 
+        // For today's bookings, determine the current time so we can skip past slots
+        const now = new Date();
+        const todayUTC = new Date();
+        todayUTC.setUTCHours(0, 0, 0, 0);
+        const isToday = bookingDate.getTime() === todayUTC.getTime();
+
+        // Build the slot filter — for today, only show slots whose time hasn't passed
+        // Slot times are stored as "HH:MM" strings (e.g. "21:00")
+        const slotWhere: any = {
+            doctorId,
+            date: bookingDate,
+            isBooked: false,
+        };
+
         // Find the next available (unbooked) time slot for this doctor on this date
-        const nextSlot = await prisma.timeSlot.findFirst({
-            where: {
-                doctorId,
-                date: bookingDate,
-                isBooked: false,
-            },
+        let nextSlot = await prisma.timeSlot.findFirst({
+            where: slotWhere,
             orderBy: { time: 'asc' },
         });
+
+        // If booking today, skip slots whose time has already passed
+        if (isToday && nextSlot) {
+            // Get current time in HH:MM format (use local server time offset +5:30 for Sri Lanka)
+            const currentHours = now.getUTCHours() + 5;
+            const currentMinutes = now.getUTCMinutes() + 30;
+            const adjustedHours = currentMinutes >= 60 ? currentHours + 1 : currentHours;
+            const adjustedMinutes = currentMinutes >= 60 ? currentMinutes - 60 : currentMinutes;
+            const currentTimeStr = `${String(adjustedHours).padStart(2, '0')}:${String(adjustedMinutes).padStart(2, '0')}`;
+
+            // If the found slot is in the past, search for the next future one
+            if (nextSlot.time < currentTimeStr) {
+                nextSlot = await prisma.timeSlot.findFirst({
+                    where: {
+                        ...slotWhere,
+                        time: { gte: currentTimeStr },
+                    },
+                    orderBy: { time: 'asc' },
+                });
+            }
+        }
 
         if (!nextSlot) {
             return NextResponse.json(

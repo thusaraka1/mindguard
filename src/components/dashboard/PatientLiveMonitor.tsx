@@ -93,7 +93,7 @@ export function PatientLiveMonitor({ onDataUpdate }: PatientLiveMonitorProps = {
         let captureInterval: NodeJS.Timeout;
 
         // 1. Setup Socket — force WebSocket (polling is unreliable for large base64 frames)
-        const socket = io("http://localhost:5000", {
+        const socket = io("http://localhost:5005", {
             transports: ['websocket'],
             reconnection: true,
             reconnectionAttempts: Infinity,
@@ -388,7 +388,7 @@ export function PatientLiveMonitor({ onDataUpdate }: PatientLiveMonitorProps = {
         let pollCount = 0;
         const pollInterval = setInterval(async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/state');
+                const res = await fetch('http://localhost:5005/api/state');
                 if (res.ok) {
                     const s = await res.json();
                     pollCount++;
