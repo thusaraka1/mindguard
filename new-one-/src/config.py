@@ -17,7 +17,7 @@ OUTPUTS_DIR.mkdir(exist_ok=True)
 MODELS_DIR.mkdir(exist_ok=True)
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://mindguard:mindguard123@localhost:5434/ai_risk_assessment")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://mindguard:mindguard123@localhost:5432/ai_risk_assessment")
 MODEL_CONFIG = {
     "parser_model": "google/flan-t5-base",
     "generator_model": "google/flan-t5-base",

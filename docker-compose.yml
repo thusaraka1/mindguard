@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: mindguard123
       POSTGRES_DB: mindguard
     ports:
-      - "5434:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
