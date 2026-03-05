@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         otpStore.set(cleanPhone, { otp, expiresAt });
 
         // Send OTP via SMS
-        const smsMessage = `Your MindGuard verification code is: ${otp}\nThis code expires in 5 minutes.\nDo not share this code with anyone.`;
+        const smsMessage = `Your Safe Kit Scan verification code is: ${otp}\nThis code expires in 5 minutes.\nDo not share this code with anyone.`;
         const smsSent = await sendSMS(cleanPhone, smsMessage);
 
         console.log(`🔐 OTP generated for ${cleanPhone}: ${otp} (SMS sent: ${smsSent})`);

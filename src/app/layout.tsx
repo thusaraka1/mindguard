@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "MindGuard | Pediatric Mental Health Monitoring",
+  title: "Safe Kit Scan | Pediatric Mental Health Monitoring",
   description: "Advanced IoT-based behavioral analysis system.",
 };
 

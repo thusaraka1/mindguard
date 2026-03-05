@@ -26,7 +26,7 @@ export default function DoctorPortalPage() {
     const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
-        const stored = localStorage.getItem("mindguard_user");
+        const stored = localStorage.getItem("safekitscan_user");
         if (stored) {
             const user = JSON.parse(stored);
             if (user.doctorId) {
@@ -122,7 +122,7 @@ export default function DoctorPortalPage() {
                         <button onClick={() => fetchAppointments(true)} className="px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-medium text-slate-600 flex items-center gap-2 transition-colors">
                             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
                         </button>
-                        <Link href="/login" onClick={() => localStorage.removeItem("mindguard_user")}
+                        <Link href="/login" onClick={() => localStorage.removeItem("safekitscan_user")}
                             className="px-4 py-2.5 rounded-lg border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-sm font-medium text-slate-600 transition-colors">
                             Logout
                         </Link>

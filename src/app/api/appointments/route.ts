@@ -98,7 +98,7 @@ export async function POST(request: Request) {
             const fee = appointment.doctor.consultFee ? `Rs. ${appointment.doctor.consultFee.toLocaleString()}` : 'TBD';
             const refNo = appointment.id.slice(-6).toUpperCase();
 
-            const smsMessage = `MindGuard Booking Confirmed!\nPatient: ${patientName}\nRef: ${refNo} | Booking #${bookingNumber}\nDoctor: ${appointment.doctor.name}\nDate: ${dateStr}\nTime: ${nextSlot.time}\nRoom: ${nextSlot.room}\nFee: ${fee}\n\nThank you for choosing MindGuard.`;
+            const smsMessage = `Safe Kit Scan Booking Confirmed!\nPatient: ${patientName}\nRef: ${refNo} | Booking #${bookingNumber}\nDoctor: ${appointment.doctor.name}\nDate: ${dateStr}\nTime: ${nextSlot.time}\nRoom: ${nextSlot.room}\nFee: ${fee}\n\nThank you for choosing Safe Kit Scan.`;
 
             try {
                 const { sendSMS } = await import('@/lib/sms');

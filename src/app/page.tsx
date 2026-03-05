@@ -385,7 +385,7 @@ export default function LandingPage() {
             <div suppressHydrationWarning className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-600/20">
               <Activity className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-foreground">MindGuard</span>
+            <span className="text-xl font-bold tracking-tight text-foreground">Safe Kit Scan</span>
           </div>
 
           {/* Desktop Nav */}
@@ -556,7 +556,7 @@ export default function LandingPage() {
       <Section id="about" className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div variants={fadeUp} custom={0} className="text-center max-w-3xl mx-auto mb-20">
-            <span className="text-sm font-semibold text-cyan-600 dark:text-cyan-400 tracking-widest uppercase mb-4 block">About MindGuard</span>
+            <span className="text-sm font-semibold text-cyan-600 dark:text-cyan-400 tracking-widest uppercase mb-4 block">About Safe Kit Scan</span>
             <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
               Pioneering{" "}
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
@@ -564,7 +564,7 @@ export default function LandingPage() {
               </span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              MindGuard combines cutting-edge IoT sensors, AI-driven analysis, and a network of specialized doctors
+              Safe Kit Scan combines cutting-edge IoT sensors, AI-driven analysis, and a network of specialized doctors
               to deliver comprehensive pediatric mental health monitoring and care. Our platform enables early detection,
               real-time tracking, and seamless doctor channeling — all from one place.
             </p>
@@ -770,7 +770,7 @@ export default function LandingPage() {
               {
                 name: "Malini Wickramasinghe",
                 role: "Parent",
-                quote: "MindGuard detected early signs of anxiety in my child that we completely overlooked. The doctor channeling made it so easy to get professional help immediately.",
+                quote: "Safe Kit Scan detected early signs of anxiety in my child that we completely overlooked. The doctor channeling made it so easy to get professional help immediately.",
                 rating: 5,
               },
               {
@@ -829,7 +829,7 @@ export default function LandingPage() {
               Ready to Take the First Step?
             </h2>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
-              Whether you want to monitor your child&apos;s mental health or channel a specialist, MindGuard is here for you.
+              Whether you want to monitor your child&apos;s mental health or channel a specialist, Safe Kit Scan is here for you.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
@@ -850,7 +850,7 @@ export default function LandingPage() {
 
             <div className="flex flex-wrap justify-center gap-6 mt-10 text-sm text-muted-foreground">
               <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-blue-400" /> Colombo, Sri Lanka</div>
-              <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-cyan-400" /> info@mindguard.lk</div>
+              <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-cyan-400" /> info@safekitscan.lk</div>
               <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-emerald-400" /> +94 11 234 5678</div>
             </div>
           </motion.div>
@@ -866,7 +866,7 @@ export default function LandingPage() {
                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
                   <Activity className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-bold">MindGuard</span>
+                <span className="font-bold">Safe Kit Scan</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 AI-powered pediatric mental health monitoring and doctor channeling platform. SLMC approved.
@@ -896,7 +896,7 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold mb-4 text-sm">Contact</h4>
               <ul className="space-y-2.5 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /> info@mindguard.lk</li>
+                <li className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /> info@safekitscan.lk</li>
                 <li className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> +94 11 234 5678</li>
                 <li className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5" /> Colombo 07, Sri Lanka</li>
               </ul>
@@ -905,7 +905,7 @@ export default function LandingPage() {
 
           <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-xs text-muted-foreground">
-              © 2026 MindGuard. All rights reserved. SLMC Approved System v1.0.4
+              © 2026 Safe Kit Scan. All rights reserved. SLMC Approved System v1.0.4
             </p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Shield className="h-3.5 w-3.5 text-emerald-500" />

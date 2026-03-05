@@ -9,7 +9,7 @@ function Header() {
           <div className="logo">
             <span className="logo-icon">🤖</span>
             <div className="logo-text">
-              <h1>AI Risk Assessment System</h1>
+              <h1>Safe Kit Scan</h1>
               <p>Child Social Media Addiction Analysis</p>
             </div>
           </div>

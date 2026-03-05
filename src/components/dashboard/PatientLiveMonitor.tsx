@@ -126,12 +126,12 @@ export function PatientLiveMonitor({ onDataUpdate }: PatientLiveMonitorProps = {
             }
         });
 
-        // 3. Also listen for MindGuard Global Updates (backup channel from background thread)
+        // 3. Also listen for Safe Kit Scan Global Updates (backup channel from background thread)
         let updateCount = 0;
-        socket.on("mindguard_update", (serverState: any) => {
+        socket.on("safekitscan_update", (serverState: any) => {
             updateCount++;
             if (updateCount % 10 === 1) {
-                console.log(`📡 mindguard_update #${updateCount}:`, {
+                console.log(`📡 safekitscan_update #${updateCount}:`, {
                     bpm: serverState.bpm, temp: serverState.body_temp,
                     move: serverState.movement_level,
                     face: serverState.facial_emotion, score: serverState.facial_score

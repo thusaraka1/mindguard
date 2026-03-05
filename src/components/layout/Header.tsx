@@ -12,7 +12,7 @@ export function Header() {
     const [userInitials, setUserInitials] = useState("DR");
 
     useEffect(() => {
-        const stored = localStorage.getItem("mindguard_user");
+        const stored = localStorage.getItem("safekitscan_user");
         if (stored) {
             try {
                 const user = JSON.parse(stored);
@@ -25,7 +25,7 @@ export function Header() {
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem("mindguard_user");
+        localStorage.removeItem("safekitscan_user");
         router.push("/");
     };
 

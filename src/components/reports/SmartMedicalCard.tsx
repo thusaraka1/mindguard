@@ -41,7 +41,7 @@ export function SmartMedicalCard({ prescription, patient, reportData }: { prescr
     const [doctorName, setDoctorName] = useState("Attending Physician");
     useEffect(() => {
         try {
-            const u = JSON.parse(localStorage.getItem("mindguard_user") || "{}");
+            const u = JSON.parse(localStorage.getItem("safekitscan_user") || "{}");
             if (u.name) setDoctorName(u.name);
         } catch {}
     }, []);
@@ -62,7 +62,7 @@ export function SmartMedicalCard({ prescription, patient, reportData }: { prescr
             <div className="border-b-2 border-slate-900 pb-4 mb-6 flex justify-between items-end">
                 <div>
                     <h1 className="text-3xl font-serif font-bold uppercase tracking-wider">Medical Health Card</h1>
-                    <p className="text-sm font-semibold text-slate-600">MindGuard Pediatric Monitoring System</p>
+                    <p className="text-sm font-semibold text-slate-600">Safe Kit Scan Pediatric Monitoring System</p>
                 </div>
                 <div className="text-right">
                     <p className="text-xs font-mono">ID: MG-{pId}</p>

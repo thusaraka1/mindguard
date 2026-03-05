@@ -23,7 +23,7 @@ export function Sidebar() {
                     <ShieldCheck className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                    <h1 className="font-bold text-xl tracking-tight text-slate-800">MindGuard</h1>
+                    <h1 className="font-bold text-xl tracking-tight text-slate-800">Safe Kit Scan</h1>
                     <p className="text-xs text-slate-500">Pediatric Monitor</p>
                 </div>
             </div>

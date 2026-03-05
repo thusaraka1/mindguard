@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const API_TOKEN = "1997|0cqO0COunscpPJBOiHHjJtpi5mODfElhyvIkOEcf5803240e"; // Ideally from env
-const SENDER_ID = "TextLKDemo"; // Or "MindGuard" if registered
+const SENDER_ID = "TextLKDemo"; // Or "Safe Kit Scan" if registered
 
 interface SMSData {
     recipient: string;

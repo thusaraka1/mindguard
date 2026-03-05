@@ -61,7 +61,7 @@ export default function AdminPage() {
 
     // Check if already logged in as admin — redirect to unified login if not
     useEffect(() => {
-        const stored = localStorage.getItem("mindguard_user");
+        const stored = localStorage.getItem("safekitscan_user");
         if (stored) {
             try {
                 const user = JSON.parse(stored);
@@ -396,7 +396,7 @@ export default function AdminPage() {
                         </div>
                         <div>
                             <h1 className="text-lg font-bold">Admin Panel</h1>
-                            <p className="text-xs text-muted-foreground">MindGuard Management</p>
+                            <p className="text-xs text-muted-foreground">Safe Kit Scan Management</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -404,7 +404,7 @@ export default function AdminPage() {
                         <button onClick={() => { fetchDoctors(); fetchAppointments(); showToast("Refreshed"); }} className="p-2 rounded-lg hover:bg-accent hover:text-foreground text-muted-foreground transition-colors">
                             <RefreshCw className="h-4 w-4" />
                         </button>
-                        <Link href="/login" onClick={() => localStorage.removeItem("mindguard_user")} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3">
+                        <Link href="/login" onClick={() => localStorage.removeItem("safekitscan_user")} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3">
                             Logout
                         </Link>
                     </div>
@@ -738,7 +738,7 @@ export default function AdminPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className={labelClass}>Email *</label>
-                                            <input type="email" required value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} className={inputClass} placeholder="doctor@mindguard.lk" />
+                                            <input type="email" required value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} className={inputClass} placeholder="doctor@safekitscan.lk" />
                                         </div>
                                         <div>
                                             <label className={labelClass}>Password *</label>
@@ -878,7 +878,7 @@ export default function AdminPage() {
                                     </label>
                                     <input type="email" value={credForm.email}
                                         onChange={e => setCredForm({ ...credForm, email: e.target.value })}
-                                        className={inputClass} placeholder="new.email@mindguard.lk" />
+                                        className={inputClass} placeholder="new.email@safekitscan.lk" />
                                     <p className="text-xs text-muted-foreground mt-1">Leave unchanged to keep current email</p>
                                 </div>
 

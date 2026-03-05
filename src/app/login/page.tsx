@@ -106,7 +106,7 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                localStorage.setItem("mindguard_user", JSON.stringify(data.user));
+                localStorage.setItem("safekitscan_user", JSON.stringify(data.user));
                 setSuccessMsg(`Welcome back, ${data.user.name}!`);
 
                 // Short delay for the success animation
@@ -240,7 +240,7 @@ export default function LoginPage() {
                             <div className="h-10 w-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center shadow-inner">
                                 <Activity className="h-6 w-6 text-emerald-400" />
                             </div>
-                            <span className="text-2xl font-bold tracking-tight">MindGuard</span>
+                            <span className="text-2xl font-bold tracking-tight">Safe Kit Scan</span>
                         </div>
                     </div>
                     <div className="relative z-10 max-w-md">
@@ -333,7 +333,7 @@ export default function LoginPage() {
                         <div className="h-10 w-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center shadow-inner">
                             <Activity className="h-6 w-6 text-blue-400" />
                         </div>
-                        <span className="text-2xl font-bold tracking-tight">MindGuard</span>
+                        <span className="text-2xl font-bold tracking-tight">Safe Kit Scan</span>
                     </div>
                 </div>
                 <div className="relative z-10 max-w-md">

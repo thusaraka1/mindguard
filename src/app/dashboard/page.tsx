@@ -26,7 +26,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const stored = localStorage.getItem("mindguard_user");
+        const stored = localStorage.getItem("safekitscan_user");
         if (stored) {
             try {
                 const user = JSON.parse(stored);
@@ -157,7 +157,7 @@ export default function DashboardPage() {
                                 <span className="text-emerald-400 font-bold">READY</span>
                             </div>
                             <div className="pt-3 border-t border-slate-800 mt-2 text-center text-[10px] text-slate-500">
-                                MINDGUARD SYSTEM v1.0.4
+                                Safe Kit Scan SYSTEM v1.0.4
                             </div>
                         </div>
                     </div>
